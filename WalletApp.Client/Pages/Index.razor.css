@@ -1,0 +1,34 @@
+﻿.nav-tabs .nav-item .nav-link {
+    background-color: #12394e;
+    border-color: #000;
+}
+
+    .nav-tabs .nav-item .nav-link.active {
+        color: #49c5b6;
+        background-color: #2779a7;
+        border-color: #000;
+    }
+
+.tab-content {
+    color: #49c5b6;
+    border: 1px solid #000;
+    border-top: transparent;
+    padding: 15px;
+}
+
+    .tab-content .tab-pane {
+        background-color: #FFF;
+        color: #49c5b6;
+        min-height: 200px;
+        height: auto;
+    }
+
+.border-warning {
+    --bs-border-opacity: 3;
+    border-color: #000 !important;
+}
+
+.btn-primary {
+    background-color: #49c5b6 !important;
+    border-color: #000 !important;
+}

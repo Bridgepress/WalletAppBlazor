@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>WalletApp.Client</title>
+    <base href="/" />
+    <link href="css/bootstrap/bootstrap.min.css" rel="stylesheet" />
+    <link href="css/app.css" rel="stylesheet" />
+    <link href="WalletApp.Client.styles.css" rel="stylesheet" />
+    <link rel="stylesheet" href="_content/Radzen.Blazor/css/material-base.css">
+    <link rel="stylesheet" href="_content/Radzen.Blazor/css/standard-base.css">
+    <link href="lib/font-awesome/css/all.css" rel="stylesheet" />
+</head>
+
+<body>
+    <div id="app">Loading...</div>
+
+    <div id="blazor-error-ui">
+        An unhandled error has occurred.
+        <a href="" class="reload">Reload</a>
+        <a class="dismiss">🗙</a>
+    </div>
+    <script src="_framework/blazor.webassembly.js"></script>
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="jquery/jquery.js"></script>
+    <script src="js/bootstrap.bundle.js"></script>
+    <script src="_content/Radzen.Blazor/Radzen.Blazor.js"></script>
+    <script src="lib/font-awesome/js/all.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/js/all.min.js"></script>
+</body>
+
+</html>
+<script>
+    function actionToastHandler(actionColor, message) {
+        const toastEl = document.getElementById('actionToast');
+
+        const toast = new bootstrap.Toast(toastEl);
+        const toastHeaderEl = document.getElementById('actionToastHeader');
+        const toastBodyEl = document.getElementById('actionToastBody');
+        toastHeaderEl.className = '';
+        toastHeaderEl.classList.add('toast-header');
+        toastHeaderEl.classList.add(actionColor);
+        toastBodyEl.innerText = message;
+        toast.show();
+    }
+</script>

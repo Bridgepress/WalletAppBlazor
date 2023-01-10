@@ -1,0 +1,307 @@
+﻿@page "/"
+@attribute [Authorize]
+@inject IJSRuntime JS
+<style>
+  body {
+    background-color: #49c5b6;
+}
+
+    
+</style>
+<PageTitle>Index</PageTitle>
+<div class="container align-items-center justify-content-center w-50 mt-2 ">
+    <ul class="nav nav-tabs" id="myTab" role="tablist" >
+        <li class="nav-item col-6 border-3 border-warning rounded" role="presentation">
+            <button class="nav-link active w-100"  id="home-tab" data-bs-toggle="tab" data-bs-target="#home" type="button" role="tab" aria-controls="home" aria-selected="true">Costs</button>
+    </li>
+        <li class="nav-item col-6 border-3 border-warning rounded" role="presentation">
+            <button class="nav-link w-100" id="profile-tab" data-bs-toggle="tab" data-bs-target="#profile" type="button" role="tab" aria-controls="profile" aria-selected="false">Income</button>
+    </li>
+</ul>
+    <div class="tab-content border-3 border-warning rounded" style="background-color:#2779a7" id="myTabContent">
+        <div class="tab-pane fade show active" id="home" style="background-color:#2779a7" role="tabpanel" aria-labelledby="home-tab">
+        <EditForm Model="FlowMoney" >
+
+            <DataAnnotationsValidator />
+
+            <div class="form-floating m-2">
+                <InputNumber @bind-Value="FlowMoney!.Amount" class="form-control" />
+                <label class="form-label">Amount</label>
+                <ValidationMessage For="@(() => FlowMoney.Amount)" />
+            </div>
+
+                <div class="form-floating m-2" style="background-color:#2779a7">
+                <InputText @bind-Value="FlowMoney.Comment" class="form-control" />
+                <label class="form-label">Comment</label>
+                <ValidationMessage For="@(() => FlowMoney.Comment)" />
+            </div>
+
+            <div class="m-2 input-group">
+                <InputSelect @bind-Value="FlowMoney.TypeOfExpenseId" class="form-select">
+                    @foreach (TypeOfExpenseDetatilsDTO item in TypeOfExpenses)
+                    {
+                        <option @key=item.Id value="@item.Id">@item.Name</option>
+                    }
+                </InputSelect>
+                    <button class="btn btn-primary" @onclick="OpenCostsInput"><i class="fa-solid fa-plus"></i></button>
+                    <button class="btn btn-danger text-white" @onclick="()=>DeleteTypeOfExpense()"><i class="fa-solid fa-trash-can"></i></button>
+            </div>
+            <div>
+                <div class="input-group m-2 @VisibleCostsInpute">
+                    <InputText type="text" class="form-control" @bind-Value="TypeOfExpense.Name" placeholder="Type Costs" aria-label="Recipient's username" aria-describedby="basic-addon2" />
+                    <div class="input-group-append">
+                        <button class="btn btn-primary" type="button" @onclick="AddTypeOfFlowMoney">Add</button>
+                    </div>
+                </div>
+                    <ValidationMessage For="@(() => TypeOfExpense.Name)" />
+            </div>
+                
+            <div class="form-floating m-2">
+                <InputDate @bind-Value="FlowMoney.Date" class="form-control" />
+                <label class="form-label">City Population</label>
+                <ValidationMessage For="@(() => FlowMoney.Date)" />
+            </div>
+
+                <div class="m-2 d-flex align-items-center justify-content-center">
+                <input type="submit"
+                       value="Add Costs"
+                           class="btn btn-primary btn-block w-100" @onclick="HandleValidSubmitCosts"/>
+            </div>
+        </EditForm>
+    </div>
+        <div class="tab-pane fade" id="profile" role="tabpanel" style="background-color:#2779a7" aria-labelledby="profile-tab">
+            <div class="tab-pane fade show active" style="background-color:#2779a7" id="home" role="tabpanel" aria-labelledby="home-tab">
+            <EditForm Model="Income" >
+
+                <DataAnnotationsValidator />
+
+                    <div class="form-floating m-2">
+                    <InputNumber @bind-Value="Income!.Amount" class="form-control" />
+                    <label class="form-label">Amount</label>
+                    <ValidationMessage For="@(() => Income.Amount)" />
+                </div>
+
+                    <div class="form-floating m-2">
+                    <InputText @bind-Value="Income.Comment" class="form-control" />
+                    <label class="form-label">Comment</label>
+                    <ValidationMessage For="@(() => Income.Comment)" />
+                </div>
+
+                    <div class="m-2 input-group">
+                        <InputSelect @bind-Value="Income.TypeIncomeId" class="form-select">
+                            @foreach (TypeIncomeDetailsDTO item in TypeIncomes)
+                            {
+                                <option value="@item.Id">@item.Name</option>
+                            }
+                            
+                        </InputSelect>
+                        <button class="btn btn-primary" @onclick="OpenIncumInput"><i class="fa-solid fa-plus"></i></button>
+                        <button class="btn btn-danger text-white" @onclick="()=>DeleteTypeIncome()"><i class="fa-solid fa-trash-can"></i></button>
+                    </div> 
+                    <div>
+                        <div class="input-group m-2 @VisibleIncomeInpute">
+                            <InputText type="text" class="form-control" @bind-Value="TypeIncome.Name" placeholder="Type Income" aria-label="Recipient's username" aria-describedby="basic-addon2" />
+                            <div class="input-group-append">
+                                <button class="btn btn-primary" type="button" @onclick="AddTypeIncome">Add</button>
+                            </div>
+                        </div>
+                        <ValidationMessage For="@(() => TypeIncome.Name)" />
+                    </div>
+                <div class="form-floating m-2">
+                    <InputDate @bind-Value="Income.Date" class="form-control" />
+                    <label class="form-label">City Population</label>
+                    <ValidationMessage For="@(() => Income.Date)" />
+                </div>
+
+                    <div class="m-2 d-flex align-items-center justify-content-center">
+                    <input type="submit"
+                           value="Add Income"
+                               class="btn btn-primary btn-block  w-100" @onclick="HandleValidSubmitIncome" />
+                </div>
+            </EditForm>
+    </div>
+    </div>
+</div>
+</div>
+    <AuthorizeView>
+</AuthorizeView>
+
+
+@code {
+    private bool collapseNavMenu = true;
+
+    private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
+
+    private void ToggleNavMenu()
+    {
+        collapseNavMenu = !collapseNavMenu;
+    }
+
+    [Parameter]
+    public Guid Id { get; set; }
+    public CreateFlowMoneyDTO? FlowMoney { get; set; } = new CreateFlowMoneyDTO(){Date = DateTime.Now};
+    public CreateIncomeDTO? Income { get; set; } = new CreateIncomeDTO() { Date = DateTime.Now };
+    public List<TypeOfExpenseDetatilsDTO> TypeOfExpenses { get; set; } = new List<TypeOfExpenseDetatilsDTO>();
+    public List<TypeIncomeDetailsDTO> TypeIncomes { get; set; } = new List<TypeIncomeDetailsDTO>();
+    public TypeOfExpenseDTO TypeOfExpense { get; set; } = new TypeOfExpenseDTO();
+    public TypeIncomeDTO TypeIncome { get; set; } = new TypeIncomeDTO();
+    [Inject]
+    public IFlowMoneyReposytory FlowMoneyReposytory { get; set; } = default!;
+    [Inject]
+    public IIncomeRepository IncomeRepository { get; set; } = default!;
+    [Inject]
+    public ITypeOfExpenseRepository TypeOfExpenseRepository { get; set; } = default!;
+    [Inject]
+    public ITypeIncomeRepository TypeIncomeRepository { get; set; } = default!;
+    [Inject]
+    public NavigationManager NavigationManager { get; set; } = default!;
+    private string PageHeader = "";
+    public string TypeCosts { get; set; } = string.Empty;
+    public string VisibleCostsInpute { get; set; } = "d-none";
+    public string VisibleIncomeInpute { get; set; } = "d-none";
+
+    protected override async Task OnInitializedAsync()
+    {
+        TypeOfExpenses = await TypeOfExpenseRepository.GetAllTypeOfExpense();
+        TypeIncomes = await TypeIncomeRepository.GetAllTypeIncome();
+        FlowMoney.TypeOfExpenseId = TypeOfExpenses[0].Id;
+        Income.TypeIncomeId = TypeIncomes[0].Id;
+    }
+
+    private async Task HandleValidSubmitCosts()
+    {
+        CreateFlowMoneyDTO? result = null;
+        if(FlowMoney.TypeOfExpenseId == Guid.Empty)
+        {
+            FlowMoney.TypeOfExpenseId = TypeOfExpenses[0].Id;
+        }
+        result = await FlowMoneyReposytory.AddFlowMoney(FlowMoney);
+        if(result != null){
+            await JS.InvokeVoidAsync(
+           "actionToastHandler",
+           "bg-success",
+           $"Costs {result.Amount} Date {result.Date.ToShortDateString()} was Add!");
+        }
+    }
+
+    private async Task HandleValidSubmitIncome()
+    {
+        CreateIncomeDTO? result = null;
+        if (Income.TypeIncomeId == Guid.Empty)
+        {
+            Income.TypeIncomeId = TypeIncomes[0].Id;
+        }
+        result = await IncomeRepository.AddIncome(Income);
+        if (result != null)
+        {
+            await JS.InvokeVoidAsync(
+           "actionToastHandler",
+           "bg-success",
+           $"Income {result.Amount} Date {result.Date.ToShortDateString()} was Add!");
+        }
+    }
+
+    private async Task AddTypeOfFlowMoney()
+    {
+        var typeOfExpenses = await TypeOfExpenseRepository.GetAllTypeOfExpense();
+        var equalExpense = typeOfExpenses.FirstOrDefault(x => x.Name == TypeOfExpense.Name);
+        if (equalExpense != null)
+        {
+            await JS.InvokeVoidAsync(
+           "actionToastHandler",
+           "bg-danger",
+           $"Сategory {TypeOfExpense.Name} already exists!");
+        }
+        else
+        {
+            var typeOfExpense = await TypeOfExpenseRepository.CreateTypeOfExpense(TypeOfExpense);
+            if (typeOfExpense != null)
+            {
+                await JS.InvokeVoidAsync(
+               "actionToastHandler",
+               "bg-success",
+               $"Сategory {typeOfExpense.Name} was Add!");
+                VisibleCostsInpute = "d-none";
+                TypeOfExpense.Name = string.Empty;
+                await OnInitializedAsync();
+            }
+        }
+    }
+
+    private async Task AddTypeIncome()
+    {
+        var typeIncomes = await TypeIncomeRepository.GetAllTypeIncome();
+        var equalIncome = typeIncomes.FirstOrDefault(x => x.Name == TypeIncome.Name);
+        if(equalIncome != null){
+            await JS.InvokeVoidAsync(
+           "actionToastHandler",
+           "bg-danger",
+           $"Сategory {TypeIncome.Name} already exists!");
+        }
+        else
+        {
+            var typeIncome = await TypeIncomeRepository.CreateTypeIncome(TypeIncome);
+            if (typeIncome != null)
+            {
+                await JS.InvokeVoidAsync(
+               "actionToastHandler",
+               "bg-success",
+               $"Сategory {typeIncome.Name} was Add!");
+                VisibleIncomeInpute = "d-none";
+                TypeIncome.Name = string.Empty;
+            }
+            await OnInitializedAsync();
+        }
+        
+    }
+
+    private async Task OpenCostsInput()
+    {
+        if (VisibleCostsInpute == "d-flex")
+        {
+            VisibleCostsInpute = "d-none";
+        }
+        else
+        {
+            VisibleCostsInpute = "d-flex";
+        }
+
+    }
+
+    private async Task OpenIncumInput()
+    {
+        if (VisibleIncomeInpute == "d-flex")
+        {
+            VisibleIncomeInpute = "d-none";
+        }
+        else
+        {
+            VisibleIncomeInpute = "d-flex";
+        }
+       
+    }
+
+    private async Task DeleteTypeOfExpense()
+    {
+        var result = await TypeOfExpenseRepository.DeleteTypeOfExpense(FlowMoney.TypeOfExpenseId);
+        if(result!=null){
+        await JS.InvokeVoidAsync(
+         "actionToastHandler",
+         "bg-danger",
+         $"Сategory {result.Name} was Delete!");
+        }
+        await OnInitializedAsync();
+        FlowMoney.TypeOfExpenseId = TypeOfExpenses[0].Id;
+    }
+
+    private async Task DeleteTypeIncome()
+    {
+        var result = await TypeIncomeRepository.DeleteTypeIncome(Income.TypeIncomeId);
+        await JS.InvokeVoidAsync(
+         "actionToastHandler",
+         "bg-danger",
+         $"Сategory {result.Name} was Delete!");
+        await OnInitializedAsync();
+        Income.TypeIncomeId = TypeIncomes[0].Id;
+    }
+}

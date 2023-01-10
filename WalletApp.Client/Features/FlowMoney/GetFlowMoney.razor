@@ -1,0 +1,169 @@
+﻿@page "/GetCosts"
+@inject IJSRuntime JS
+@attribute [Authorize]
+
+<style>
+    body {
+        background-color: #49c5b6;
+        position: fixed;
+        width: 100%;
+    }
+
+    table {
+        max-height: 70%;
+        overflow: auto;
+        display: inline-block;
+    }
+
+    .headerTable {
+        position: sticky;
+        top: 0;
+    }
+
+    tr:nth-child(odd) {
+        background-color: #2779a7;
+    }
+
+    tr:nth-child(even) {
+        background-color: #49c5b6;
+    }
+
+    th {
+        background-color: #2779a7;
+    }
+
+    .btn-primary {
+        background-color: #2779a7 !important;
+        border-color: #000 !important;
+    }
+</style>
+
+<div class="input-group m-2">
+    <input type="date" @bind-value="DateBegin" max="@DateNow" />
+    <input class="" type="date" @bind-value="DateEnd" min="@DateBegin.ToString("yyyy-MM-dd")" />  
+    <button class="btn btn-primary" type="button" @onclick="GetDate">Search</button>
+
+</div>
+
+<div class="row">
+    <div class="col-6">
+        <div class="container">
+            <div class="row">
+                <div class="my-5">
+                    <RadzenChart>
+                        <RadzenPieSeries Data="@revenue" Title="Amount" CategoryProperty="Quarter" ValueProperty="Revenue" Radius="150" Fills="Fills">
+                            <RadzenBarOptions Margin="5"></RadzenBarOptions>
+                        </RadzenPieSeries>
+                    </RadzenChart>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6">
+        <table class="table w-auto border border-dark table-striped">
+            <thead class="headerTable">
+        <tr>
+            <th scope="col">Amount</th>
+            <th scope="col">Comment</th>
+            <th scope="col">TypeOfExpense</th>
+            <th scope="col">Date</th>
+            <th scope="col">Total: @Total UAH</th>
+            <th scope="col"></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (FlowMoneyDetailsDTO costs in FlowMoney)
+        {
+            <tr>
+                <td scope="row">@costs.Amount</td>
+                <td scope="row">@costs.Comment</td>
+                <td scope="row">@costs.TypeOfExpense</td>
+                <td scope="row">@costs.Date.ToShortDateString()</td>
+                <td scope="row"><a class="btn btn-danger text-white" @onclick="()=>DeleteCosts(costs)"><i class="fa-solid fa-trash-can"></i></a></td>
+                <td scope="row"></td>
+             </tr>
+        }
+    </tbody>
+        </table>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public Guid Id { get; set; }
+    public List<FlowMoneyDetailsDTO> FlowMoney = new List<FlowMoneyDetailsDTO>();
+    bool showDataLabels = false;
+    public DateTime DateBegin = DateTime.Now;
+    public DateTime DateEnd=DateTime.Now;
+    private Dictionary<string, decimal> _categoryAllCosts;
+    public bool IsDisabled;
+    public string disableTwoDate = "";
+    public string DateNow = DateTime.Now.ToString("yyyy-MM-dd");
+    public decimal Total { get; set; }
+    public List<string> Fills = new List<string>() { "#F78989", "#89F798", "#A889F7", "#F7B589", "#89F7C2", "#D289F7", "#F5D66B", "#6BF5EA" };
+    List<DataItem> revenue = new List<DataItem>();
+    [Inject]
+    public IFlowMoneyReposytory FlowMoneyReposytory { get; set; } = default!;
+    [Inject]
+    public ITypeOfExpenseRepository _typeOfExpenseRepository { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var costs = await FlowMoneyReposytory.GetListToDate(DateTime.Now);
+        FlowMoney = costs.ToList();
+        revenue = await CalculatingCostsCategories();
+        Total = await FlowMoneyReposytory.GetAllDecimaltoDate(DateTime.Now);
+    }
+
+    private async Task<List<DataItem>> CalculatingCostsCategories()
+    {
+        var typeCosts = await _typeOfExpenseRepository.GetAllTypeOfExpense();
+        List<DataItem> dataItems = new List<DataItem>();
+
+        foreach (var item in typeCosts)
+        {
+            DataItem newData = new DataItem { Quarter = item.Name, Revenue =(double)FlowMoney.Where(x => x.TypeOfExpense == item.Name).Sum(x => x.Amount)};
+            if(newData.Revenue > 0)
+            {
+                dataItems.Add(newData);
+            }
+            
+        }
+        return dataItems;
+    }
+
+    public async Task GetDate()
+    {
+        if (DateBegin == DateEnd)
+        {
+            var costs = await FlowMoneyReposytory.GetListToDate(DateBegin);
+            FlowMoney = costs.ToList();
+            Total = await FlowMoneyReposytory.GetAllDecimaltoDate(DateBegin);
+            revenue = await CalculatingCostsCategories();
+        }
+        else if (DateEnd > DateBegin)
+        {
+            var costs = await FlowMoneyReposytory.GetAllListToBeginDateEndDate(DateBegin, DateEnd);
+            FlowMoney = costs.ToList();
+            Total = await FlowMoneyReposytory.GetAllDecimalToBeginDateEndDate(DateBegin, DateEnd);
+            revenue = await CalculatingCostsCategories();
+        }
+    }
+
+    public async Task DeleteCosts(FlowMoneyDetailsDTO flowMoney)
+    {
+        FlowMoney.Remove(FlowMoney.FirstOrDefault(x => x.Id == flowMoney.Id));
+        await JS.InvokeVoidAsync(
+        "actionToastHandler",
+        "bg-danger",
+        $"Costs {flowMoney.Amount} Date:{flowMoney.Date.ToString("dd-MM-yyyy")} was Delete");
+        await FlowMoneyReposytory.DeleteFlowMoney(flowMoney.Id);
+        await GetDate();
+    }
+
+    class DataItem
+    {
+        public string Quarter { get; set; }
+        public double Revenue { get; set; }
+    }
+}

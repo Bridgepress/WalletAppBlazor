@@ -1,0 +1,164 @@
+﻿@page "/GetIncome"
+@inject IJSRuntime JS
+@attribute [Authorize]
+
+<style>
+    body {
+        background-color: #49c5b6;
+        position: fixed;
+        width: 100%;
+    }
+
+    table {
+        max-height: 70%;
+        overflow: auto;
+        display: inline-block;
+    }
+
+    .headerTable{
+        position: sticky;
+        top: 0;
+    }
+    tr:nth-child(odd) {
+        background-color: #2779a7;
+    }
+
+    tr:nth-child(even) {
+        background-color: #49c5b6;
+    }
+
+    th {
+        background-color: #2779a7;
+    }
+
+    .btn-primary {
+        background-color: #2779a7 !important;
+        border-color: #000 !important;
+    }
+</style>
+<div class="input-group m-2">
+    <input type="date" @bind-value="DateBegin" max="@DateNow" />
+    <input class="" type="date" @bind-value="DateEnd" min="@DateBegin.ToString("yyyy-MM-dd")" />
+    <button class="btn btn-primary" type="button" @onclick="GetDate">Search</button>
+</div>
+
+<div class="row">
+    <div class="col-6">
+        <div class="container">
+            <div class="row">
+                <div class="my-5">
+                    <RadzenChart>
+                        <RadzenPieSeries Data="@revenue" Title="Amount" CategoryProperty="Quarter" ValueProperty="Revenue" Radius="150" Fills="Fills">
+                            <RadzenBarOptions Margin="5"></RadzenBarOptions>
+                        </RadzenPieSeries>
+                    </RadzenChart>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6">
+        <table class="table w-auto border border-dark table-striped ">
+            <thead class="headerTable">
+                <tr>
+                    <th scope="col">Amount</th>
+                    <th scope="col">Comment</th>
+                    <th scope="col">TypeIncome</th>
+                    <th scope="col">Date</th>
+                    <th scope="col">Total: @Total UAH</th>
+                    <th scope="col"></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (IncomeDetailsDTO income in Income)
+                {
+                    <tr>
+                        <td scope="row">@income.Amount</td>
+                        <td scope="row">@income.Comment</td>
+                        <td scope="row">@income.TypeIncome</td>
+                        <td scope="row">@income.Date.ToShortDateString()</td>
+                        <td scope="row"><a class="btn btn-danger text-white" @onclick="()=>DeleteIncome(income)"><i class="fa-solid fa-trash-can"></i></a></td>
+                        <td scope="row"></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public Guid Id { get; set; }
+    public List<IncomeDetailsDTO> Income = new List<IncomeDetailsDTO>();
+    bool showDataLabels = false;
+    public DateTime DateBegin = DateTime.Now;
+    public DateTime DateEnd = DateTime.Now.AddDays(1);
+    public bool IsDisabled;
+    public string disableTwoDate = "";
+    public string DateNow = DateTime.Now.ToString("yyyy-MM-dd");
+    List<DataItem> revenue = new List<DataItem>();
+    public decimal Total { get; set; }
+    public List<string> Fills = new List<string>() { "#F78989", "#89F798", "#A889F7", "#F7B589", "#89F7C2", "#D289F7", "#F5D66B", "#6BF5EA" };
+    [Inject]
+    public IIncomeRepository IncomeRepository { get; set; } = default!;
+    [Inject]
+    public ITypeIncomeRepository _typeIncomeRepository { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var income = await IncomeRepository.GetListToDate(DateTime.Now);
+        Income = income.ToList();
+        Total = await IncomeRepository.GetAllDecimaltoDate(DateTime.Now);
+        revenue = await CalculatingIncomeCategories();
+    }
+
+    private async Task<List<DataItem>> CalculatingIncomeCategories()
+    {
+        var typeCosts = await _typeIncomeRepository.GetAllTypeIncome();
+        List<DataItem> dataItems = new List<DataItem>();
+
+        foreach (var item in typeCosts)
+        {
+            DataItem newData = new DataItem { Quarter = item.Name, Revenue = (double)Income.Where(x => x.TypeIncome == item.Name).Sum(x => x.Amount) };
+            if (newData.Revenue > 0)
+            {
+                dataItems.Add(newData);
+            }
+        }
+        return dataItems;
+    }
+
+    public async Task GetDate()
+    {
+        if (DateBegin == DateEnd)
+        {
+            var costs = await IncomeRepository.GetListToDate(DateBegin);
+            Income = costs.ToList();
+            Total = await IncomeRepository.GetAllDecimaltoDate(DateBegin);
+            revenue = await CalculatingIncomeCategories();
+        }
+        else if (DateEnd > DateBegin)
+        {
+            var costs = await IncomeRepository.GetAllListToBeginDateEndDate(DateBegin, DateEnd);
+            Income = costs.ToList();
+            Total = await IncomeRepository.GetAllDecimalToBeginDateEndDate(DateBegin, DateEnd);
+            revenue = await CalculatingIncomeCategories();
+        }
+    }
+
+    public async Task DeleteIncome(IncomeDetailsDTO income)
+    {
+        Income.Remove(Income.FirstOrDefault(x => x.Id == income.Id));
+        await JS.InvokeVoidAsync(
+        "actionToastHandler",
+        "bg-danger",
+        $"Costs {income.Amount} Date:{income.Date.ToString("dd-MM-yyyy")} was Delete");
+        await IncomeRepository.DeleteIncome(income.Id);
+        await GetDate();
+    }
+
+    class DataItem
+    {
+        public string Quarter { get; set; }
+        public double Revenue { get; set; }
+    }
+}
